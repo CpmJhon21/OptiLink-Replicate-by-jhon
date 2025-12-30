@@ -1,11 +1,12 @@
 [build]
-  command = "npx tsx script/build.ts"
+  command = "npm ci && npx tsx script/build.ts"
   publish = "dist/public"
   functions = "dist"
 
 [build.environment]
   NODE_VERSION = "20"
   NPM_VERSION = "10"
+  NPM_FLAGS = "--prefer-offline --no-audit"
 
 [[redirects]]
   from = "/api/*"
