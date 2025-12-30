@@ -1,0 +1,102 @@
+The Netlify deploy errored, with the following guidance provided:
+
+- Relevant log lines:
+  - Build command run: [line 62](#L62) — [line 64](#L64)
+  - The failing command output: [line 65](#L65) ("tsx: not found")
+  - Exit code and failure summary: [line 71](#L71) and [line 97](#L97)
+
+Diagnosis
+- Error type: missing executable / dependency at build time.
+- Cause: The build script runs "tsx script/build.ts" (see [line 64](#L64)), but the tsx binary is not available in the build environment (see [line 65](#L65)). That means tsx is not installed (or not installed where Netlify can find it) when Netlify runs npm run build.
+
+Solution
+1) Verify whether tsx is declared in package.json (and that package.json was committed)
+   - Open your repo package.json: https://github.com/CpmJhon21/OptiLink-Replicate-by-jhon/blob/main/package.json
+   - Check that there is either a dependency or devDependency entry for "tsx" and that the "build" script indeed uses tsx.
+
+2) If tsx is missing, add it as a devDependency and commit the lockfile:
+   - Locally run:
+```bash
+npm install --save-dev tsx
+git add package.json package-lock.json
+git commit -m "chore: add tsx devDependency for build"
+git push
+```
+   - This ensures Netlify installs tsx during the build and the tsx CLI will be available for npm run build.
+
+3) If tsx is already listed but the build still fails:
+   - Ensure package.json and lockfile are committed and pushed.
+   - Clear Netlify cache and re-trigger a deploy (Netlify normally installs devDependencies during build; stale cache or missing lockfile can cause the binary to be absent).
+
+4) Quick alternative (temporary) workaround:
+   - Change your build script to use npx so Netlify will fetch tsx at run-time (not recommended as permanent fix):
+```json
+"scripts": {
+  "build": "npx tsx script/build.ts"
+}
+```
+   - Commit and push the change and redeploy.
+
+After applying the fix, trigger a new Netlify deploy. The original failure (exit code 127) was due to the missing tsx binary called by the build script (see [line 65](#L65) and [line 71](#L71)).
+
+The relevant error logs are:
+
+Line 0: build-image version: 4eb552cf97517bc57f136e719a1cf73a7f3cefbb (noble)
+Line 1: buildbot version: 4eb552cf97517bc57f136e719a1cf73a7f3cefbb
+Line 2: Fetching cached dependencies
+Line 3: Failed to fetch cache, continuing with build
+Line 4: Starting to prepare the repo for build
+Line 5: No cached dependencies found. Cloning fresh repo
+Line 6: git clone --filter=blob:none https://github.com/CpmJhon21/OptiLink-Replicate-by-jhon
+Line 7: Preparing Git Reference refs/heads/main
+Line 8: Custom build command detected. Proceeding with the specified command: 'npm run build'
+Line 9: Starting to install dependencies
+Line 10: Downloading and installing node v20.19.6...
+Line 11: Downloading https://nodejs.org/dist/v20.19.6/node-v20.19.6-linux-x64.tar.xz...
+Line 12: Computing checksum with sha256sum
+Line 13: Checksums matched!
+Line 57:   production
+Line 58: [96m[1m​[22m[39m
+Line 59: [96m[1mbuild.command from netlify.toml                               [22m[39m
+Line 60: [96m[1m────────────────────────────────────────────────────────────────[22m[39m
+Line 61: ​
+Line 62: [36m$ npm run build[39m
+Line 63: > rest-express@1.0.0 build
+Line 64: > tsx script/build.ts
+Line 65: sh: 1: tsx: not found
+Line 66: [91m[1m​[22m[39m
+Line 67: [91m[1m"build.command" failed                                        [22m[39m
+Line 68: [91m[1m────────────────────────────────────────────────────────────────[22m[39m
+Line 69: ​
+Line 70:   [31m[1mError message[22m[39m
+Line 71:   Command failed with exit code 127: npm run build
+Line 72: ​
+Line 73:   [31m[1mError location[22m[39m
+Line 74:   In build.command from netlify.toml:
+Line 75:   npm run build
+Line 76: ​
+Line 77:   [31m[1mResolved config[22m[39m
+Line 78:   build:
+Line 79:     command: npm run build
+Line 80:     commandOrigin: config
+Line 81:     environment:
+Line 82:       - NODE_VERSION
+Line 83:       - NPM_VERSION
+Line 87:   functions:
+Line 88:     "*":
+Line 89:       external_node_modules:
+Line 90:         - express
+Line 91:         - react
+Line 92:         - react-dom
+Line 93:       node_bundler: esbuild
+Line 94:   functionsDirectory: /opt/build/repo/dist
+Line 95:   redirects:
+Line 96:     - from: /api/*
+      status: 200
+      to: /.netlify/functions/index.cjs/:splat
+    - from: /*
+      status: 200
+      to: /
+Line 97: Build failed due to a user error: Build script returned non-zero exit code: 2
+Line 98: Failing build: Failed to build site
+Line 99: Finished processing build request in 16.903s

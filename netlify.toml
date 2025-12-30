@@ -1,0 +1,32 @@
+[build]
+  command = "npx tsx script/build.ts"
+  publish = "dist/public"
+  functions = "dist"
+
+[build.environment]
+  NODE_VERSION = "20"
+  NPM_VERSION = "10"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/index.cjs/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+
+[dev]
+  command = "npm run dev"
+  port = 5000
+
+[functions]
+  node_bundler = "esbuild"
+  external_node_modules = ["express", "react", "react-dom"]
+
+[context.production.environment]
+  NODE_ENV = "production"
+
+[context.develop.environment]
+  NODE_ENV = "development"
